@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Machine Learning with TytusJS</title>
+    <link rel="stylesheet" href="src/css/stylesV2.css">
+</head>
+
+<body>
+    <nav class="top-nav">
+        <div class="nav-content">
+            <h1>Machine Learning with TytusJS IA1-2S-2024</h1>
+            <div class="nav-links">
+                <label for="algoritmoSeleccionado">Selecciona un algoritmo de Machine Learning:</label>
+                <select id="algoritmoSeleccionado"></select>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="container">
+            <div class="form-group">
+                <label for="dtStInput1">Selecciona entrada CSV-1:</label>
+                <input type="file" id="dtStInput1" accept=".csv">
+            </div>
+
+            <div id="file2" class="form-group" style="display: none;">
+                <label for="dtStInput2">Selecciona entrada CSV-2:</label>
+                <input type="file" id="dtStInput2" accept=".csv">
+            </div>
+
+            <div id="file3" class="form-group" style="display: none;">
+                <label for="dtStInput3">Selecciona entrada CSV-3:</label>
+                <input type="file" id="dtStInput3" accept=".csv">
+            </div>
+
+            <div id="clmnSelect" class="form-group">
+                <label for="axleX">Selecciona eje X:</label>
+                <select id="axleX"></select>
+
+                <label for="axleY">Selecciona eje Y:</label>
+                <select id="axleY"></select>
+            </div>
+
+            <div id="polyDgrContainer" class="form-group" style="display: none;">
+                <label for="polyDegree">Grado Polinomial:</label>
+                <input type="number" id="polyDegree" min="1" max="10" value="2">
+            </div>
+
+            <div id="trainPrtCntainer" class="form-group">
+                <label for="trainPertg">Porcentaje de entrenamiento:</label>
+                <input type="number" id="trainPertg" min="1" max="100" value="100">
+            </div>
+
+            <div id="nvBayesFrmCntainer" style="display: none;"></div>
+
+            <button id="trainBn">Entrenar</button>
+            <button id="predictBn" style="display: none;">Predecir</button>
+            <button id="graphBn" style="display: none;">Graficar</button>
+            <button id="patternBn" style="display: none;">Calcular patrones</button>
+            <button id="predictBn2" style="display: none;">Predecir</button>
+
+
+            <div id="resCntainer" style="display: none;">
+                <h2>Proceso realizado con éxito!</h2>
+                <div id="nvBayesPrdctionCntainer" style="display: none;">
+                    <h3>Predicción Naive Bayes</h3>
+                    <p id="naiveBayesPredictionText"></p>
+                </div>
+                <div id="neuralNkCntainer" style="display: none;">
+                    <h3>Resultado Neural Networks</h3>
+                    <div id="neuralNetworkPredictionContainer"></div>
+                    <div id="neuralNetworkWeightsContainer"></div>
+                    <div id="neuralNetworkBiasesContainer"></div>
+                </div>
+                <div class="form-group" id="resPredictionCntainer" style="display: none;">
+                    <h3>Resultado de la predicción</h3>
+                    <input type="text" id="predictionText" readonly style="width: 100%;" value="...">
+                </div>
+            </div>
+
+            <div id="chrtCntainer">
+                <canvas id="chart1"></canvas>
+            </div>
+
+            <div id="treeCntainer">
+                <div id="tree"></div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis-network.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="tytusjs-main/dist/tytus.js"></script>
+    <script src="src/js/mainV2.js"></script>
+</body>
+
+</html>
