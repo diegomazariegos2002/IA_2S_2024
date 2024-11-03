@@ -1,12 +1,12 @@
 // Generates the main logic for the application
 // List of algorithms to be used in the application
 const algorithms = [
-    { value: 'decision_tree', text: 'Decision Tree' },
     { value: 'linear_regression', text: 'Linear Regression' },
+    { value: 'decision_tree', text: 'Decision Tree' },
+    { value: 'kmeans', text: 'K-Means' },
     { value: 'polynomial_regression', text: 'Polynomial Regression' },
     { value: 'naive_bayes', text: 'Naive Bayes' },
     { value: 'neuronal_network', text: 'Neural Network' },
-    { value: 'kmeans', text: 'K-Means' },
     { value: 'knn', text: 'K-Nearest Neighbors' }
 ];
 
@@ -29,12 +29,15 @@ let xTrain, yTrain, xTest, yTest, predictionsTrain, predictionsTest;
 // Variables para el árbol de decisión
 let decisionTreeModel, dotStr, root, dTPredictions;
 
+// Variables para KMeans
+let kTemp_ms, iter_ms, data_ms, kMeans_ms, clusterizedData_ms;
+
 let headers = [];
 let chart;
-let data1 = [];
-let data2 = [];
-let data3 = [];
-let data4 = [];
+let data1_1 = [];
+let data2_0 = [];
+let data1_0 = [];
+let data4_0 = [];
 
 // Atrributes or elements from the HTML
 const algothSelect = document.getElementById('algoritmoSeleccionado');
@@ -48,8 +51,10 @@ const trainPertgI = document.getElementById('trainPertg');
 const trainBn = document.getElementById('trainBn');
 const predictBn = document.getElementById('predictBn');
 const graphBn = document.getElementById('graphBn');
+const graphBn2 = document.getElementById('graphBn2');
 const patternBn = document.getElementById('patternBn');
 const predictBn2 = document.getElementById('predictBn2');
+const file1 = document.getElementById('file1');
 const file2 = document.getElementById('file2');
 const file3 = document.getElementById('file3');
 const clSelect = document.getElementById('clmnSelect');
@@ -76,6 +81,7 @@ function init() {
     graphBn.addEventListener('click', handleShowCharts);
     patternBn.addEventListener('click', handleCalcPatterns);
     predictBn2.addEventListener('click', handlePredicts);
+    graphBn2.addEventListener('click', handleShowCharts);
 
     updateVisibility();
 }
@@ -84,6 +90,7 @@ function updateVisibility() {
     console.log('update: ', algothSelect.value);
     const selectedAlgorithm = algothSelect.value;
 
+    file1.style.display = ['decision_tree', 'linear_regression', 'polynomial_regression', 'naive_bayes', 'neuronal_network', 'kmeans', 'knn'].includes(selectedAlgorithm) ? 'block' : 'none';
     file2.style.display = ['decision_tree', 'neuronal_network', 'kmeans', 'knn'].includes(selectedAlgorithm) ? 'block' : 'none';
     file3.style.display = selectedAlgorithm === 'neuronal_network' ? 'block' : 'none';
     clSelect.style.display = ['linear_regression', 'polynomial_regression'].includes(selectedAlgorithm) ? 'block' : 'none';
@@ -97,6 +104,7 @@ function updateVisibility() {
     treeCntainer.style.display = 'none';
     predictBn.style.display = 'none';
     graphBn.style.display = 'none';
+    graphBn2.style.display = 'none';
     patternBn.style.display = 'none';
     resPredCntainer.style.display = 'none';
     resPred.style.display = 'none';
@@ -147,16 +155,16 @@ function processCSV(csv, csvNumber) {
     if (rows.length > 0) {
         if (csvNumber === 1) {
             headers = rows[0];
-            data1 = rows.slice(1);
-            data3 = rows.slice(0);
+            data1_1 = rows.slice(1);
+            data1_0 = rows.slice(0);
             if (selectedAlgorithm === "naive_bayes") {
                 generateNaiveBayesForm(headers);
             }
             updateColumnSelectors(headers);
         } else if (csvNumber === 2) {
-            data2 = rows.slice(0);
+            data2_0 = rows.slice(0);
         } else if (csvNumber === 3) {
-            data4 = rows.slice(0);
+            data4_0 = rows.slice(0);
         }
     }
 }
@@ -208,7 +216,7 @@ function handleTrains() {
     const yIndex = parseInt(axleY.value);
     const trainPerc = parseFloat(trainPertgI.value) / 100;
 
-    if (!((data3.length > 0) && (xIndex != null || yIndex != null) && (trainPerc > 0 && trainPerc <= 1))) {
+    if (!((data1_0.length > 0) && (xIndex != null || yIndex != null) && (trainPerc > 0 && trainPerc <= 1))) {
         alert("Please load a valid CSV file and select columns if applicable.");
         return;
     }
@@ -228,7 +236,7 @@ function handleTrains() {
             handleNeuralNetwork();
             break;
         case 'kmeans':
-            handleKMeans();
+            handleTrainKMeans();
             break;
         case 'knn':
             handleKNN();
@@ -276,6 +284,14 @@ function handleShowCharts() {
         case 'neuronal_network':
             break;
         case 'kmeans':
+            data_ms = data2_0.map(line => line.map(Number));
+            if (data_ms[0].length === 1) {
+                showKMeansChart1D();
+            } else if (data_ms[0].length === 2) {
+                showKMeansChart2D();
+            } else {
+                alert("Kmeans solo funciona con datos de 1 o 2 dimensiones.");
+            }
             break;
         case 'knn':
             break;
@@ -289,7 +305,7 @@ function handleShowCharts() {
 function handleCalcPatterns() {
     const selectedAlgorithm = algothSelect.value;
 
-    if (data2.length < 1) {
+    if (data2_0.length < 1) {
         alert("Please load a valid CSV file and select columns if applicable.");
         return;
     }
@@ -307,6 +323,7 @@ function handleCalcPatterns() {
         case 'neuronal_network':
             break;
         case 'kmeans':
+            handleCalcPatternsKMeans();
             break;
         case 'knn':
             break;
@@ -321,8 +338,8 @@ function handleCalcPatterns() {
 function handleTrainRegreAlgos(algorithm, xIndex, yIndex, trainPercentage) {
     console.log({ 'Algorithm': algorithm, 'XIndex': xIndex, 'YIndex': yIndex, 'TrainPercentage': trainPercentage });
 
-    const xValues = data1.map(row => parseFloat(row[xIndex]));
-    const yValues = data1.map(row => parseFloat(row[yIndex]));
+    const xValues = data1_1.map(row => parseFloat(row[xIndex]));
+    const yValues = data1_1.map(row => parseFloat(row[yIndex]));
 
     // Define el tamaño del conjunto de entrenamiento
     const trainSize = Math.floor(xValues.length * trainPercentage);
@@ -417,9 +434,9 @@ function showRegressionChart(algorithm) {
 }
 
 function handleTrainDecisionTree() {
-    console.log({ 'Data3': data3, 'Data2': data2 });
+    console.log({ 'Data3': data1_0, 'Data2': data2_0 });
 
-    decisionTreeModel = new DecisionTreeID3(data3);
+    decisionTreeModel = new DecisionTreeID3(data1_0);
     root = decisionTreeModel.train(decisionTreeModel.dataset);
 
     resCntainer.style.display = 'block';
@@ -462,10 +479,10 @@ function showDecisionTreeGraph() {
 }
 
 function handlePatternDecisionTree() {
-    console.log('Entrando a btn Patterns ', { 'Data3': data3, 'Data2': data2 });
+    console.log('Entrando a btn Patterns ', { 'Data3': data1_0, 'Data2': data2_0 });
 
     dTPredictions =
-        (data2 != null || (data2.length > 0 && data2.length < 2)) ? decisionTreeModel.predict([data2[0], data2[1]], root) : null;
+        (data2_0 != null || (data2_0.length > 0 && data2_0.length < 2)) ? decisionTreeModel.predict([data2_0[0], data2_0[1]], root) : null;
 
 
     alert('Patrones calculados con éxito.');
@@ -476,10 +493,10 @@ function handlePatternDecisionTree() {
 function handlePredDecisionTree() {
     console.log(
         'Entrando a btn Predicts ',
-        { 'Data3': data3, 'Data2': data2, 'Root': root, 'Predictions': dTPredictions });
+        { 'Data3': data1_0, 'Data2': data2_0, 'Root': root, 'Predictions': dTPredictions });
 
     if (dTPredictions && dTPredictions.value) {
-        resPred.value = `${data3[0][data3[0].length-1]} : ${dTPredictions.value}`;
+        resPred.value = `${data1_0[0][data1_0[0].length-1]} : ${dTPredictions.value}`;
     } else {
         resPred.value = 'No se pudo obtener la predicción.';
     }
@@ -491,8 +508,8 @@ function handlePredDecisionTree() {
 
 function handleNaiveBayes() {
     let model = new BayesMethod();
-    const attributes = data1.map(row => row.slice(0, -1));
-    const classes = data1.map(row => row.slice(-1)[0]);
+    const attributes = data1_1.map(row => row.slice(0, -1));
+    const classes = data1_1.map(row => row.slice(-1)[0]);
 
     headers.slice(0, -1).forEach((header, index) => {
         let columnData = attributes.map(row => row[index]);
@@ -512,125 +529,83 @@ function handleNaiveBayes() {
     showNaiveBayesPrediction(prediction);
 }
 
-function handleNeuralNetwork() {
-    const layers = data3[0].map(Number);
-    const options = {
-        learning_rate: 5,
-        activation: function (x) {
-            return 1 / (1 + Math.exp(-x));
-        },
-        derivative: function (y) {
-            return y * (1 - y);
-        }
-    };
+function handleTrainKMeans() {
+    console.log('handleTrainKMeans', { 'Data1_1': data1_1, 'Data2': data2_0, 'Data1_0': data1_0 });
+    
+    [kTemp_ms, iter_ms] = data1_0[0].map(Number);
+    data_ms = data2_0.map(line => line.map(Number));
 
-    const nn = new NeuralNetwork(layers, options);
-    const trainingData = data2.map(data => ({
-        input: data.slice(0, 2).map(Number),
-        target: data.slice(2).map(Number)
-    }));
-
-    for (let i = 0; i < 1000; i++) {
-        for (let data of trainingData) {
-            nn.Entrenar(data.input, data.target);
-        }
-    }
-
-    const predictData = data4.map(data => data.map(Number));
-    showNeuralNetworkResults(nn, predictData);
-}
-
-function handleKMeans() {
-    const [k, iterations] = data3[0].map(Number);
-    const data = data2.map(line => line.map(Number));
-
-    if (data[0].length === 1) {
-        const kmeans = new LinearKMeans(k, data.flat());
-        const clusterized_data = kmeans.clusterize(k, data.flat(), iterations);
-        showLinearKMeansChart(clusterized_data, k);
-    } else if (data[0].length === 2) {
-        const kmeans = new _2DKMeans(k, data);
-        const clusterized_data = kmeans.clusterize(k, data, iterations);
-        show2DKMeansChart(clusterized_data, k);
+    if (data_ms[0].length === 1) {
+        kMeans_ms = new LinearKMeans(kTemp_ms, data_ms.flat());
+        resCntainer.style.display = 'block';
+        patternBn.style.display = 'block';
+    } else if (data_ms[0].length === 2) {
+        kMeans_ms = new _2DKMeans(kTemp_ms, data_ms);
+        resCntainer.style.display = 'block';
+        patternBn.style.display = 'block';
     } else {
-        alert("KMeans currently supports only 1D or 2D data.");
+        alert("Kmeans solo funciona con datos de 1 o 2 dimensiones.");
     }
 }
 
-function handleKNN() {
-    const individuals = data3.map(row => {
-        return [parseFloat(row[0]), parseFloat(row[1]), parseFloat(row[2]), row[3]];
-    });
-    const referencePoint = data2[0].map(coord => parseFloat(coord));
-    const knn = new KNearestNeighbor(individuals);
-    const euclideanDistances = knn.euclidean(referencePoint);
-    const manhattanDistances = knn.manhattan(referencePoint);
-    showKNNResults(euclideanDistances, manhattanDistances);
+function handleCalcPatternsKMeans() {
+    console.log('handleCalcPatternsKMeans', { 'Data1_1': data1_1, 'Data2': data2_0, 'Data1_0': data1_0 });
+    if (data_ms[0].length === 1) {
+        clusterizedData_ms = kMeans_ms.clusterize(kTemp_ms, data_ms.flat(), iter_ms);
+        graphBn2.style.display = 'block';
+        alert("Patrones calculados con éxito.");
+    } else if (data_ms[0].length === 2) {
+        clusterizedData_ms = kMeans_ms.clusterize(kTemp_ms, data_ms, iter_ms);
+        graphBn2.style.display = 'block';
+        alert("Patrones calculados con éxito.");
+    } else {
+        alert("Kmeans solo funciona con datos de 1 o 2 dimensiones.");
+        return;
+    }
 }
 
-function showNaiveBayesPrediction(prediction) {
-    const predictionText = document.getElementById('naiveBayesPredictionText');
-    predictionText.textContent = `Prediction: ${prediction[0]} with probability ${(prediction[1] * 100).toFixed(2)}%`;
-    nvBayesPrdctionCntainer.style.display = 'block';
-    chrtCntainer.style.display = 'none';
-    treeCntainer.style.display = 'none';
-}
-
-function showNeuralNetworkResults(nn, predictData) {
-    const container = document.getElementById('neuralNkCntainer');
-    container.innerHTML = '<h3>Neural Network Results</h3>';
-
-    const predictionsDiv = document.createElement('div');
-    predictionsDiv.innerHTML = '<h4>Predictions:</h4>';
-    predictData.forEach((input, index) => {
-        const prediction = nn.Predecir(input);
-        predictionsDiv.innerHTML += `<p>Input ${index + 1}: ${prediction.join(', ')}</p>`;
-    });
-    container.appendChild(predictionsDiv);
-
-    const weightsDiv = document.createElement('div');
-    weightsDiv.innerHTML = '<h4>Weights of the first layer:</h4>';
-    weightsDiv.innerHTML += `<p>${JSON.stringify(nn.layerLink[0].obtener_Weights().data)}</p>`;
-    container.appendChild(weightsDiv);
-
-    const biasesDiv = document.createElement('div');
-    biasesDiv.innerHTML = '<h4>Biases of the first layer:</h4>';
-    biasesDiv.innerHTML += `<p>${JSON.stringify(nn.layerLink[0].obtener_Bias().data)}</p>`;
-    container.appendChild(biasesDiv);
-
-    neuralNkCntainer.style.display = 'block';
-    chrtCntainer.style.display = 'none';
-    treeCntainer.style.display = 'none';
-}
-
-function showLinearKMeansChart(clusterized_data, k) {
-    const ctx = document.getElementById('chart1').getContext('2d');
+function showKMeansChart1D() {
+    console.log('showLinearKMeansChart', { 'Clusterized Data': clusterizedData_ms, 'K': kTemp_ms });
+    
+    const chartDom = document.getElementById('chart1').getContext('2d');
     if (chart) {
         chart.destroy();
     }
 
-    const clusters = new Set(clusterized_data.map(a => a[1]));
-    const colors = Array.from(clusters).map(() =>
+    const clustersIter = new Set(clusterizedData_ms.map(a => a[1]));
+    console.log('Clusters', clustersIter);
+    
+    const colorsPoints = Array.from(clustersIter).map(() =>
         '#' + Math.floor(Math.random() * 16777215).toString(16)
     );
+    console.log('Colors', colorsPoints);
 
-    const datasets = Array.from(clusters).map((cluster, index) => ({
+    const dataSetsGraph = Array.from(clustersIter).map((cluster, index) => ({
         label: `Cluster ${cluster}`,
-        data: clusterized_data.filter(d => d[1] === cluster).map(d => ({ x: d[0], y: 0 })),
-        backgroundColor: colors[index],
+        data: clusterizedData_ms.filter(d => d[1] === cluster).map(d => ({ x: d[0], y: 0 })),
+        backgroundColor: colorsPoints[index],
         pointRadius: 5
     }));
 
-    chart = new Chart(ctx, {
+    dataSetsGraph.push({
+        label: 'Centroids',
+        data: Array.from(clustersIter).map(value => ({ x: value, y: 0 })),
+        backgroundColor: '#ff0000',
+        pointRadius: 10
+    });
+
+    console.log('Datasets', dataSetsGraph);
+
+    chart = new Chart(chartDom, {
         type: 'scatter',
         data: {
-            datasets: datasets
+            datasets: dataSetsGraph
         },
         options: {
             responsive: true,
             title: {
                 display: true,
-                text: 'KMeans Clustering (1D)'
+                text: 'KMeans (1D)'
             },
             scales: {
                 x: {
@@ -647,28 +622,42 @@ function showLinearKMeansChart(clusterized_data, k) {
     treeCntainer.style.display = 'none';
 }
 
-function show2DKMeansChart(clusterized_data, k) {
-    const ctx = document.getElementById('chart1').getContext('2d');
+function showKMeansChart2D() {
+    console.log('showKMeansChart2D', { 'Clusterized Data': clusterizedData_ms, 'K': kTemp_ms });
+
+    const chartDom = document.getElementById('chart1').getContext('2d');
     if (chart) {
         chart.destroy();
     }
 
-    const clusters = new Set(clusterized_data.map(a => a[1]));
+    const clusters = new Set(clusterizedData_ms.map(a => a[1]));
+    console.log('Clusters', clusters);
+
     const colors = Array.from(clusters).map(() =>
         '#' + Math.floor(Math.random() * 16777215).toString(16)
     );
+    console.log('Colors', colors);
 
-    const datasets = Array.from(clusters).map((cluster, index) => ({
+    const dataSetsGraph = Array.from(clusters).map((cluster, index) => ({
         label: `Cluster ${cluster}`,
-        data: clusterized_data.filter(d => d[1] === cluster).map(d => ({ x: d[0][0], y: d[0][1] })),
+        data: clusterizedData_ms.filter(d => d[1] === cluster).map(d => ({ x: d[0][0], y: d[0][1] })),
         backgroundColor: colors[index],
         pointRadius: 5
     }));
 
-    chart = new Chart(ctx, {
+    dataSetsGraph.push({
+        label: 'Centroids',
+        data: Array.from(clusters).map(value => ({ x: value[0], y: value[1] })),
+        backgroundColor: '#ff0000',
+        pointRadius: 10
+    });
+
+    console.log('Datasets', dataSetsGraph);
+
+    chart = new Chart(chartDom, {
         type: 'scatter',
         data: {
-            datasets: datasets
+            datasets: dataSetsGraph
         },
         options: {
             responsive: true,
@@ -692,26 +681,24 @@ function show2DKMeansChart(clusterized_data, k) {
     treeCntainer.style.display = 'none';
 }
 
+function handleNeuralNetwork() {
+    alert('Neural Network algorithm is not implemented yet.');
+}
+
+function handleKNN() {
+    alert('K-Nearest Neighbors algorithm is not implemented yet.');
+}
+
+function showNaiveBayesPrediction(prediction) {
+    alert('Naive Bayes algorithm is not implemented yet.');
+}
+
+function showNeuralNetworkResults(nn, predictData) {
+    alert('Neural Network algorithm is not implemented yet.');
+}
+
 function showKNNResults(euclideanDistances, manhattanDistances) {
-    const container = document.getElementById('tree');
-    container.innerHTML = '<h3>K-Nearest Neighbors Results</h3>';
-
-    const euclideanDiv = document.createElement('div');
-    euclideanDiv.innerHTML = '<h4>Euclidean Distances:</h4>';
-    euclideanDistances.forEach((distance, index) => {
-        euclideanDiv.innerHTML += `<p>Point ${index + 1}: ${distance}</p>`;
-    });
-    container.appendChild(euclideanDiv);
-
-    const manhattanDiv = document.createElement('div');
-    manhattanDiv.innerHTML = '<h4>Manhattan Distances:</h4>';
-    manhattanDistances.forEach((distance, index) => {
-        manhattanDiv.innerHTML += `<p>Point ${index + 1}: ${distance}</p>`;
-    });
-    container.appendChild(manhattanDiv);
-
-    chrtCntainer.style.display = 'none';
-    treeCntainer.style.display = 'block';
+    alert('K-Nearest Neighbors algorithm is not implemented yet.');
 }
 
 // Initialize the application
